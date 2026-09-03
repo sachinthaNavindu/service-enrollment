@@ -1,67 +1,160 @@
-# Enrollment-Service
+# Enrollment Service
 
-A microservice responsible for managing student enrollments into academic programs. It integrates with the Student-Service via REST to enrich enrollment responses with student details.
+A Spring Boot microservice responsible for managing student enrollments and providing enrollment information through a RESTful API.
 
-## About
+The service persists enrollment data in MySQL and communicates with the **Student Service** to retrieve student information when returning enrollment details.
 
-This project is part of the Enterprise Cloud Application (ECA) module in the Higher Diploma in Software Engineering (HDSE) program at the Institute of Software Engineering (IJSE). It is intended exclusively for students enrolled in this program.
+---
 
-## Tech Stack
+## Overview
 
-| Technology | Details |
-|---|---|
-| Java | 25 |
-| Spring Boot | 4.1.0 |
-| Spring Cloud | 2025.1.2 |
-| Spring Data JPA | ORM / persistence layer |
-| MySQL | Relational database (port `14500`) |
-| Spring RestClient | HTTP client for inter-service calls |
-| MapStruct | DTO ↔ Entity mapping |
-| Lombok | Boilerplate reduction |
-| Spring Validation | Bean validation |
-| Spring Cloud Netflix Eureka Client | Service registration & discovery |
-| Spring Cloud Config Client | Fetches config from Config-Server |
-| Spring Boot Actuator | Health & management endpoints |
+The Enrollment Service provides APIs to:
+
+* Create enrollments
+* Retrieve all enrollments
+* Retrieve enrollments by program
+* Retrieve an enrollment by ID
+* Update enrollments
+* Delete enrollments
+* Enrich enrollment responses with student information
+
+It is designed to operate as part of a distributed microservices architecture using **Spring Cloud Config** and **Netflix Eureka**.
+
+---
+
+## Architecture
+
+```text
+                         ┌──────────────────┐
+                         │   API Gateway    │
+                         │      :7000       │
+                         └────────┬─────────┘
+                                  │
+                                  ▼
+                         ┌──────────────────┐
+                         │ Enrollment      │
+                         │ Service :8002   │
+                         └───────┬──────────┘
+                                 │
+                    ┌────────────┴────────────┐
+                    │                         │
+                    ▼                         ▼
+             ┌──────────────┐          ┌──────────────┐
+             │    MySQL     │          │    Student   │
+             │   Database   │          │    Service   │
+             │    :14500    │          │    :8000     │
+             └──────────────┘          └──────────────┘
+
+                         ▲
+                         │
+                ┌────────┴────────┐
+                │                 │
+         ┌──────────────┐  ┌──────────────┐
+         │ Config Server│  │ Eureka       │
+         │    :9000     │  │ Registry     │
+         │              │  │    :9001     │
+         └──────────────┘  └──────────────┘
+```
+
+---
+
+## Technology Stack
+
+| Technology                 | Purpose                      |
+| -------------------------- | ---------------------------- |
+| Java 25                    | Application runtime          |
+| Spring Boot 4.1.0          | Application framework        |
+| Spring Cloud 2025.1.2      | Microservices infrastructure |
+| Spring Data JPA            | Data persistence             |
+| MySQL                      | Relational database          |
+| Spring RestClient          | Inter-service communication  |
+| MapStruct                  | DTO and entity mapping       |
+| Lombok                     | Boilerplate reduction        |
+| Spring Validation          | Request validation           |
+| Netflix Eureka Client      | Service discovery            |
+| Spring Cloud Config Client | Centralized configuration    |
+| Spring Boot Actuator       | Health and monitoring        |
+| Maven                      | Build management             |
+
+---
 
 ## Service Details
 
-| Property | Value |
-|---|---|
-| Port | `8002` |
-| Artifact ID | `Enrollment-Service` |
-| Group ID | `lk.ijse.eca` |
-| Database | MySQL — `jdbc:mysql://localhost:14500/eca` (auto-created) |
+| Property      | Value                 |
+| ------------- | --------------------- |
+| Service       | Enrollment Service    |
+| Port          | `8002`                |
+| Group ID      | `lk.ijse.eca`         |
+| Artifact ID   | `Enrollment-Service`  |
+| Database      | MySQL                 |
+| Database Port | `14500`               |
+| API Base Path | `/api/v1/enrollments` |
+
+The service configuration uses a MySQL database named `eca` on port `14500`.
+
+---
 
 ## API Endpoints
 
-Base path: `/api/v1/enrollments`
+### Create Enrollment
 
-| Method | Path | Description | Content-Type |
-|---|---|---|---|
-| `POST` | `/api/v1/enrollments` | Create a new enrollment | `application/json` |
-| `GET` | `/api/v1/enrollments` | Get all enrollments | — |
-| `GET` | `/api/v1/enrollments?programId={id}` | Get enrollments filtered by program | — |
-| `GET` | `/api/v1/enrollments/{id}` | Get an enrollment by ID | — |
-| `PUT` | `/api/v1/enrollments/{id}` | Update an enrollment | `application/json` |
-| `DELETE` | `/api/v1/enrollments/{id}` | Delete an enrollment | — |
+```http
+POST /api/v1/enrollments
+```
 
-> **Enrollment ID** is an auto-generated numeric value (`Long`). The `student` field in responses is populated by calling the Student-Service.
+Creates a new student enrollment.
 
-## Sample Request Body
-
-> Requests must use `Content-Type: application/json`.
-
-**POST** `/api/v1/enrollments`
+**Request Body**
 
 ```json
 {
   "date": "2025-01-15",
   "studentId": "123456789V",
-  "programId": "HDSE"
+  "programId": "DEVOPS"
 }
 ```
 
-**PUT** `/api/v1/enrollments/{id}`
+---
+
+### Get All Enrollments
+
+```http
+GET /api/v1/enrollments
+```
+
+Returns all enrollments.
+
+---
+
+### Get Enrollments by Program
+
+```http
+GET /api/v1/enrollments?programId={id}
+```
+
+Returns enrollments associated with a specific program.
+
+---
+
+### Get Enrollment by ID
+
+```http
+GET /api/v1/enrollments/{id}
+```
+
+Returns a specific enrollment using its ID.
+
+---
+
+### Update Enrollment
+
+```http
+PUT /api/v1/enrollments/{id}
+```
+
+Updates an existing enrollment.
+
+**Request Body**
 
 ```json
 {
@@ -71,48 +164,291 @@ Base path: `/api/v1/enrollments`
 }
 ```
 
-**Sample response:**
+---
+
+### Delete Enrollment
+
+```http
+DELETE /api/v1/enrollments/{id}
+```
+
+Deletes an existing enrollment.
+
+The enrollment ID is an auto-generated `Long` value.
+
+---
+
+## Response Example
+
+A successful enrollment response can include the associated student information retrieved from the Student Service.
 
 ```json
 {
   "id": 1,
-  "date": "2025-01-15",
+  "date": "2026-01-11",
   "studentId": "123456789V",
-  "programId": "HDSE",
+  "programId": "DEVOPS",
   "student": {
-    "name": "Kasun Perera",
+    "name": "Ethan Hewage",
     "address": "123 Main Street, Colombo",
     "mobile": "0771234567",
-    "email": "kasun@example.com",
-    "picture": "/api/v1/students/123456789V/picture"
+    "email": "Ethan@example.com"
   }
 }
 ```
 
+The `student` information is populated through communication with the Student Service.
+
+---
+
+## Service-to-Service Communication
+
+The Enrollment Service communicates with the **Student Service** using Spring `RestClient`.
+
+```text
+Enrollment Service
+        │
+        │ Request student details
+        ▼
+  Student Service
+        │
+        ▼
+ Student Information
+```
+
+This keeps student data managed by the Student Service while allowing enrollment responses to provide the required student details.
+
+---
+
+## Service Discovery
+
+The service is registered with **Netflix Eureka**.
+
+Instead of relying on fixed service addresses, the Enrollment Service can participate in service discovery within the microservices environment.
+
+```text
+Enrollment Service
+        │
+        ▼
+Eureka Service Registry
+        │
+        ▼
+Student Service
+```
+
+The Service Registry runs on:
+
+```text
+http://localhost:9001
+```
+
+---
+
+## Centralized Configuration
+
+The Enrollment Service uses **Spring Cloud Config Client** to retrieve its configuration from the centralized Config Server.
+
+```text
+Enrollment Service
+        │
+        │ Configuration
+        ▼
+ Config Server
+     :9000
+```
+
+The Config Server should be available before starting the Enrollment Service.
+
+---
+
+## Prerequisites
+
+Before running the service, ensure the following are available:
+
+* Java 25
+* MySQL
+* Git
+* Config Server
+* Service Registry
+* Student Service
+
+The MySQL instance must be accessible on port:
+
+```text
+14500
+```
+
+The repository's documented startup dependencies include Config Server, Service Registry, API Gateway, and Student Service.
+
+---
+
 ## Getting Started
 
-Follow the lecture guidelines, refer to the lecture video for more information and how to get started correctly.
+### Clone the Repository
 
-> **Prerequisites:** Config-Server, Service-Registry, Api-Gateway, and Student-Service must be running. A MySQL instance must be accessible on port `14500`.
+```bash
+git clone https://github.com/sachinthaNavindu/service-enrollment.git
+```
 
-**Startup order:**
-1. Config-Server (`9000`)
-2. Service-Registry (`9001`)
-3. Api-Gateway (`7000`)
-4. Student-Service (`8000`)
-5. Program-Service (`8001`)
-6. **Enrollment-Service** (`8002`)
+Navigate to the project:
+
+```bash
+cd service-enrollment
+```
+
+---
+
+## Run the Application
+
+Using Maven Wrapper:
+
+### Linux / macOS
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
+### Windows
+
+```bash
+mvnw.cmd spring-boot:run
+```
+
+The service will start on:
+
+```text
+http://localhost:8002
+```
+
+---
+
+## Build the Application
+
+```bash
+./mvnw clean package
+```
+
+For Windows:
+
+```bash
+mvnw.cmd clean package
+```
+
+The generated JAR file will be available in:
+
+```text
+target/
+```
+
+Run the packaged application with:
+
+```bash
+java -jar target/Enrollment-Service-*.jar
+```
+
+---
+
+## Startup Order
+
+For the complete microservices environment, use the following startup order:
+
+```text
+1. Config Server       :9000
+        ↓
+2. Service Registry    :9001
+        ↓
+3. API Gateway         :7000
+        ↓
+4. Student Service     :8000
+        ↓
+5. Program Service     :8001
+        ↓
+6. Enrollment Service  :8002
+```
+
+This ensures that configuration, service discovery, and required dependent services are available before the Enrollment Service starts.
+
+---
+
+## Health Check
+
+Spring Boot Actuator is included for application monitoring.
+
+Once the service is running:
+
+```text
+http://localhost:8002/actuator/health
+```
+
+Use this endpoint to verify the application's health status.
+
+---
+
 ## Testing
 
-A Postman collection is available for testing the API endpoints:
+The API can be tested using tools such as:
 
-**Enrollment Service:** [Open Collection](https://www.postman.com/ijse-eca-5768309/workspace/eca-69-70/collection/47280517-00b85c96-410b-4bfd-b622-30b989db2a7b?action=share&creator=47280517)
+* Postman
+* cURL
+* Swagger/OpenAPI clients
+* Frontend applications through the API Gateway
 
-## Need Help?
+The repository also provides a Postman collection for testing the Enrollment Service endpoints.
 
-If you encounter any issues, feel free to reach out and start a discussion via the Slack workspace.
+---
+
+## Project Structure
+
+```text
+service-enrollment/
+│
+├── .mvn/
+│   └── wrapper/
+│
+├── src/
+│   └── main/
+│       ├── java/
+│       │   └── lk/
+│       │       └── ijse/
+│       │           └── eca/
+│       │               └── enrollment/
+│       │
+│       └── resources/
+│
+├── .gitattributes
+├── .gitignore
+├── mvnw
+├── mvnw.cmd
+├── pom.xml
+└── README.md
+```
+
+---
+
+## Microservices Integration
+
+The Enrollment Service is part of a larger microservices architecture:
+
+```text
+                     API Gateway
+                         │
+          ┌──────────────┼──────────────┐
+          │              │              │
+          ▼              ▼              ▼
+      Student         Program       Enrollment
+      Service         Service        Service
+          │              │              │
+          └──────────────┼──────────────┘
+                         │
+                   Service Registry
+                         │
+                   Config Server
+```
+
+The Enrollment Service specifically depends on the Student Service when student information needs to be included in enrollment responses.
+
+---
+
+## Author
+
+**Sachintha Navindu**
